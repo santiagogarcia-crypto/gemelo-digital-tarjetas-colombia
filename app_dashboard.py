@@ -8,6 +8,13 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
+# Importar el módulo generador de reportes PDF (report_generator.py)
+try:
+    from report_generator import construir_pdf_personalizado
+    PDF_DISPONIBLE = True
+except ImportError:
+    PDF_DISPONIBLE = False
+
 # Configuración inicial de la página
 st.set_page_config(
     page_title="Gemelo Digital Financiero - Tarjetas de Crédito Colombia",
@@ -44,21 +51,18 @@ if menu == "1. Serie Temporal e Ingesta SFC":
     st.header("📈 Evolución Temporal del Mercado de Tarjetas de Crédito")
     st.write("Exploración dinámica del volumen de plásticos e indicadores históricos de la Superintendencia Financiera de Colombia.")
     
-    # Detección dinámica del archivo CSV en la carpeta data/
     archivos_data = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')] if os.path.exists(DATA_DIR) else []
     
     if archivos_data:
         csv_base = os.path.join(DATA_DIR, archivos_data[0])
         df = pd.read_csv(csv_base)
         
-        # Identificación flexible de columnas
         col_fecha = 'fechacorte' if 'fechacorte' in df.columns else ('fecha' if 'fecha' in df.columns else df.columns[0])
         col_entidad = 'nombreentidad' if 'nombreentidad' in df.columns else ('nombre_entidad' if 'nombre_entidad' in df.columns else df.columns[1])
         col_tarjetas = 'total_tarjetas_credito' if 'total_tarjetas_credito' in df.columns else ('total_tarjetas' if 'total_tarjetas' in df.columns else df.columns[2])
         
         df[col_fecha] = pd.to_datetime(df[col_fecha])
         
-        # Filtro de entidades multiselect
         entidades_disponibles = list(df[col_entidad].dropna().unique())
         entidades_default = entidades_disponibles[:5] if len(entidades_disponibles) >= 5 else entidades_disponibles
         
@@ -100,7 +104,6 @@ elif menu == "2. Constelación Financiera (Red Multilado)":
     if os.path.exists(csv_const):
         df_c = pd.read_csv(csv_const)
         
-        # Métricas agregadas
         col1, col2, col3 = st.columns(3)
         col1.metric("Volumen Transado Total", f"${df_c['volumen_transado_mensual'].sum():,.0f} COP")
         col2.metric("Ingreso por Comisión Comercio (MDR)", f"${df_c['ingreso_mdr_comercio'].sum():,.0f} COP")
@@ -189,3 +192,64 @@ elif menu == "4. Modelo Econométrico de Diferenciación":
             st.dataframe(df_e[cols_existentes])
     else:
         st.warning(f"No se encontró el archivo econométrico en `{csv_econ}`. Asegúrese de haber subido la carpeta `/outputs` a GitHub.")
+
+# ==============================================================================
+# SERVICIO DE GENERACIÓN Y DESCARGA DE REPORTES PDF (PANEL LATERAL)
+# ==============================================================================
+st.sidebar.markdown("---")
+st.sidebar.header("📄 Generador de Reporte PDF")
+
+if PDF_DISPONIBLE:
+    nombre_est = st.sidebar.text_input("Nombre del Estudiante:", "Santiago García")
+    entidad_focal = st.sidebar.selectbox(
+        "Entidad Objeto de Estudio:", 
+        ["BANCO DAVIVIENDA S.A.", "BANCOLOMBIA", "BANCO AGRARIO", "BBVA COLOMBIA", "RAPPIPAY"]
+    )
+    propuesta_val = st.sidebar.text_area(
+        "Declaración Promesa de Valor:", 
+        "Diferenciación por intangibles y cobertura de red multilado."
+    )
+
+    modulos_reporte = st.sidebar.multiselect(
+        "Módulos a Incluir en el PDF:",
+        [
+            "Capa 1: Ingesta y Serie Temporal SFC",
+            "Capa 2: Constelación Financiera (Red Multilado)",
+            "Capa 3: Segmentación Comportamental (K-Means)",
+            "Capa 4: Econometría e Inelasticidad Cruzada"
+        ],
+        default=[
+            "Capa 1: Ingesta y Serie Temporal SFC",
+            "Capa 2: Constelación Financiera (Red Multilado)",
+            "Capa 4: Econometría e Inelasticidad Cruzada"
+        ]
+    )
+
+    cruces_reporte = st.sidebar.multiselect(
+        "Cruces de Variables a Calcular:",
+        [
+            "Perfiles K-Means vs. Margen Neto Operativo",
+            "Inelasticidad Cruzada vs. Variación de Cuota",
+            "MDR Comercio vs. Tasa de Interés Rotativa"
+        ],
+        default=["Inelasticidad Cruzada vs. Variación de Cuota"]
+    )
+
+    if st.sidebar.button("🎓 Generar Reporte PDF Personalizado"):
+        pdf_data = construir_pdf_personalizado(
+            nombre_estudiante=nombre_est,
+            entidad_focal=entidad_focal,
+            propuesta_valor=propuesta_val,
+            modulos_seleccionados=modulos_reporte,
+            cruzado_opciones=cruces_reporte,
+            out_dir=OUT_DIR
+        )
+        
+        st.sidebar.download_button(
+            label="⬇️ Descargar PDF de Evaluación",
+            data=pdf_data,
+            file_name=f"Reporte_Evaluacion_FDT_{nombre_est.replace(' ', '_')}.pdf",
+            mime="application/pdf"
+        )
+else:
+    st.sidebar.warning("Instale 'reportlab' para habilitar la descarga de reportes PDF (`pip install reportlab`).")
