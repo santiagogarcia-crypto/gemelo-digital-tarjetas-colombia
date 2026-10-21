@@ -8,14 +8,14 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-# Importación del motor avanzado de reportes PDF
+# Importación segura del motor avanzado de reportes PDF
 try:
     from advanced_pdf_report_generator import FDTReportEngine
     PDF_DISPONIBLE = True
 except Exception:
     PDF_DISPONIBLE = False
 
-# Configuración inicial de la página
+# Configuración inicial de la página (DEBE SER LA PRIMERA INSTRUCCIÓN DE STREAMLIT)
 st.set_page_config(
     page_title="Gemelo Digital Financiero - Tarjetas de Crédito Colombia",
     page_icon="🏛️",
@@ -33,7 +33,11 @@ st.title("🏛️ Gemelo Digital Financiero: Mercado de Tarjetas de Crédito en 
 st.markdown("**Metodología:** Martínez Carazo (2006) | **Insumo:** Datos Abiertos SFC (Dataset `h2jg-r3zg`) | **Período:** 2021–2026")
 st.markdown("---")
 
-# Menú de navegación único
+# ==============================================================================
+# BARRA LATERAL (SIDEBAR): MENÚ ÚNICO
+# ==============================================================================
+st.sidebar.title("Navegación del Modelo")
+
 menu = st.sidebar.radio(
     "Seleccione la Capa de Análisis:",
     [
@@ -42,7 +46,7 @@ menu = st.sidebar.radio(
         "3. Segmentación Comportamental (K-Means)",
         "4. Modelo Econométrico de Diferenciación"
     ],
-    key="nav_menu_radio_single"
+    key="unique_main_navigation_radio"
 )
 
 # ==============================================================================
@@ -70,13 +74,19 @@ if menu == "1. Serie Temporal e Ingesta SFC":
             "Seleccione Entidades a Comparar:", 
             options=entidades_disponibles, 
             default=entidades_default,
-            key="multi_entidades_capa1_clean"
+            key="multi_select_entidades_capa1"
         )
         
         if entidades_seleccionadas:
             df_filtered = df[df[col_entidad].isin(entidades_seleccionadas)]
             fig = px.line(df_filtered, x=col_fecha, y=col_tarjetas, color=col_entidad, title="Volumen Histórico de Plásticos Activos")
-            st.plotly_chart(fig, use_container_width=True)
+            
+            # Compatibilidad con versiones nuevas y anteriores de Streamlit
+            try:
+                st.plotly_chart(fig, use_container_width=True, key="fig_linea_capa1")
+            except TypeError:
+                st.plotly_chart(fig, key="fig_linea_capa1")
+                
             with st.expander("🔍 Ver Tabla de Datos Filtrados (SFC)"):
                 st.dataframe(df_filtered.sort_values(by=col_fecha, ascending=False))
     else:
@@ -101,7 +111,11 @@ elif menu == "2. Constelación Financiera (Red Multilado)":
             x=col_entidad_c, y=['ingreso_intereses', 'ingreso_mdr_comercio', 'ingreso_cuota_manejo'],
             title="Desglose de Fuentes de Ingreso", barmode='stack'
         )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        
+        try:
+            st.plotly_chart(fig_bar, use_container_width=True, key="fig_barras_capa2")
+        except TypeError:
+            st.plotly_chart(fig_bar, key="fig_barras_capa2")
     else:
         st.warning(f"No se encontró `{csv_const}`.")
 
@@ -117,7 +131,11 @@ elif menu == "3. Segmentación Comportamental (K-Means)":
             df_p, x='Promedio_Plásticos', y='Ticket_Promedio_COP', color='Nombre_Perfil',
             hover_name='Entidad', size='Promedio_Plásticos', title="Mapa Comportamental K-Means"
         )
-        st.plotly_chart(fig_scatter, use_container_width=True)
+        
+        try:
+            st.plotly_chart(fig_scatter, use_container_width=True, key="fig_scatter_capa3")
+        except TypeError:
+            st.plotly_chart(fig_scatter, key="fig_scatter_capa3")
     else:
         st.warning(f"No se encontró `{csv_perf}`.")
 
@@ -133,12 +151,16 @@ elif menu == "4. Modelo Econométrico de Diferenciación":
             df_e.sort_values(by='Variacion_Absoluta_Cuota', ascending=False).head(12),
             x='Entidad', y='Variacion_Absoluta_Cuota', color='Tipo', title="Sensibilidad ante Shock de Precio (+1.5%)"
         )
-        st.plotly_chart(fig_diff, use_container_width=True)
+        
+        try:
+            st.plotly_chart(fig_diff, use_container_width=True, key="fig_barras_capa4")
+        except TypeError:
+            st.plotly_chart(fig_diff, key="fig_barras_capa4")
     else:
         st.warning(f"No se encontró `{csv_econ}`.")
 
 # ==============================================================================
-# BARRA LATERAL: GENERADOR DE REPORTES PDF
+# BARRA LATERAL: INTEGRACIÓN DEL GENERADOR DE PDF
 # ==============================================================================
 st.sidebar.markdown("---")
 st.sidebar.header("📄 Generador de Reporte PDF")
@@ -146,24 +168,24 @@ st.sidebar.header("📄 Generador de Reporte PDF")
 if PDF_DISPONIBLE:
     engine = FDTReportEngine(data_dir=DATA_DIR, outputs_dir=OUT_DIR)
 
-    nombre_estudiante = st.sidebar.text_input("Nombre del Estudiante:", "Santiago García Carvajal", key="nom_est_clean")
-    curso_estudiante = st.sidebar.text_input("Asignatura:", "Gerencia de Servicios Financieros", key="cur_est_clean")
+    nombre_estudiante = st.sidebar.text_input("Nombre del Estudiante:", "Santiago García Carvajal", key="pdf_input_nombre_estudiante")
+    curso_estudiante = st.sidebar.text_input("Asignatura:", "Gerencia de Servicios Financieros", key="pdf_input_curso_estudiante")
 
     entidades_opts = ["Perspectiva Consolidada"]
     if not engine.df_const.empty and "nombreentidad" in engine.df_const.columns:
         entidades_opts.extend(list(engine.df_const["nombreentidad"].unique()))
     
-    entidad_target = st.sidebar.selectbox("Entidad Objeto de Estudio:", entidades_opts, key="entidad_pdf_clean")
+    entidad_target = st.sidebar.selectbox("Entidad Objeto de Estudio:", entidades_opts, key="pdf_select_entidad_target")
     target_arg = None if entidad_target == "Perspectiva Consolidada" else entidad_target
 
     modulos_seleccionados = st.sidebar.multiselect(
         "Módulos en el PDF:",
         ["Serie Temporal SFC", "Constelación Financiera (Red Multilado)", "Segmentación Comportamental (K-Means)", "Modelo Econométrico de Diferenciación"],
         default=["Serie Temporal SFC", "Constelación Financiera (Red Multilado)", "Modelo Econométrico de Diferenciación"],
-        key="modulos_pdf_clean"
+        key="pdf_multi_modulos_seleccionados"
     )
 
-    if st.sidebar.button("🎓 Generar PDF Personalizado", type="primary", key="btn_pdf_clean"):
+    if st.sidebar.button("🎓 Generar PDF Personalizado", type="primary", key="pdf_btn_generar_reporte"):
         student_info = {"nombre": nombre_estudiante, "curso": curso_estudiante}
         strategic_decisions = {
             "mk_externo": "Promesa diferenciada por intangibles.",
@@ -189,7 +211,7 @@ if PDF_DISPONIBLE:
             data=pdf_buffer,
             file_name=f"Reporte_FDT_{nombre_estudiante.replace(' ', '_')}.pdf",
             mime="application/pdf",
-            key="btn_descarga_pdf_clean"
+            key="pdf_btn_descargar_archivo"
         )
 else:
     st.sidebar.warning("Instale `reportlab` para habilitar las descargas.")
