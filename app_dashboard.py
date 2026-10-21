@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-# Importación segura del motor avanzado de reportes PDF
+# Importación del motor avanzado de reportes PDF
 try:
     from advanced_pdf_report_generator import FDTReportEngine
     PDF_DISPONIBLE = True
@@ -33,7 +33,7 @@ st.title("🏛️ Gemelo Digital Financiero: Mercado de Tarjetas de Crédito en 
 st.markdown("**Metodología:** Martínez Carazo (2006) | **Insumo:** Datos Abiertos SFC (Dataset `h2jg-r3zg`) | **Período:** 2021–2026")
 st.markdown("---")
 
-# Menú de navegación
+# Menú de navegación con key única para evitar DuplicateElementId
 menu = st.sidebar.radio(
     "Seleccione la Capa de Análisis:",
     [
@@ -41,7 +41,8 @@ menu = st.sidebar.radio(
         "2. Constelación Financiera (Red Multilado)",
         "3. Segmentación Comportamental (K-Means)",
         "4. Modelo Econométrico de Diferenciación"
-    ]
+    ],
+    key="nav_menu_radio_main"
 )
 
 # ==============================================================================
@@ -65,7 +66,12 @@ if menu == "1. Serie Temporal e Ingesta SFC":
         entidades_disponibles = list(df[col_entidad].dropna().unique())
         entidades_default = entidades_disponibles[:5] if len(entidades_disponibles) >= 5 else entidades_disponibles
         
-        entidades_seleccionadas = st.multiselect("Seleccione Entidades a Comparar:", options=entidades_disponibles, default=entidades_default)
+        entidades_seleccionadas = st.multiselect(
+            "Seleccione Entidades a Comparar:", 
+            options=entidades_disponibles, 
+            default=entidades_default,
+            key="multi_entidades_capa1"
+        )
         
         if entidades_seleccionadas:
             df_filtered = df[df[col_entidad].isin(entidades_seleccionadas)]
@@ -140,23 +146,24 @@ st.sidebar.header("📄 Generador de Reporte PDF")
 if PDF_DISPONIBLE:
     engine = FDTReportEngine(data_dir=DATA_DIR, outputs_dir=OUT_DIR)
 
-    nombre_estudiante = st.sidebar.text_input("Nombre del Estudiante:", "Santiago García Carvajal")
-    curso_estudiante = st.sidebar.text_input("Asignatura:", "Gerencia de Servicios Financieros")
+    nombre_estudiante = st.sidebar.text_input("Nombre del Estudiante:", "Santiago García Carvajal", key="input_nom_est")
+    curso_estudiante = st.sidebar.text_input("Asignatura:", "Gerencia de Servicios Financieros", key="input_cur_est")
 
     entidades_opts = ["Perspectiva Consolidada"]
     if not engine.df_const.empty and "nombreentidad" in engine.df_const.columns:
         entidades_opts.extend(list(engine.df_const["nombreentidad"].unique()))
     
-    entidad_target = st.sidebar.selectbox("Entidad Objeto de Estudio:", entidades_opts)
+    entidad_target = st.sidebar.selectbox("Entidad Objeto de Estudio:", entidades_opts, key="select_entidad_pdf")
     target_arg = None if entidad_target == "Perspectiva Consolidada" else entidad_target
 
     modulos_seleccionados = st.sidebar.multiselect(
         "Módulos en el PDF:",
         ["Serie Temporal SFC", "Constelación Financiera (Red Multilado)", "Segmentación Comportamental (K-Means)", "Modelo Econométrico de Diferenciación"],
-        default=["Serie Temporal SFC", "Constelación Financiera (Red Multilado)", "Modelo Econométrico de Diferenciación"]
+        default=["Serie Temporal SFC", "Constelación Financiera (Red Multilado)", "Modelo Econométrico de Diferenciación"],
+        key="multi_modulos_pdf"
     )
 
-    if st.sidebar.button("🎓 Generar PDF Personalizado", type="primary"):
+    if st.sidebar.button("🎓 Generar PDF Personalizado", type="primary", key="btn_generar_pdf_side"):
         student_info = {"nombre": nombre_estudiante, "curso": curso_estudiante}
         strategic_decisions = {
             "mk_externo": "Promesa diferenciada por intangibles.",
@@ -181,7 +188,8 @@ if PDF_DISPONIBLE:
             label="⬇️ Descargar PDF de Evaluación",
             data=pdf_buffer,
             file_name=f"Reporte_FDT_{nombre_estudiante.replace(' ', '_')}.pdf",
-            mime="application/pdf"
+            mime="application/pdf",
+            key="btn_descargar_pdf_side"
         )
 else:
     st.sidebar.warning("Instale `reportlab` para habilitar las descargas.")
