@@ -1,6 +1,6 @@
 # ==============================================================================
 # GEMELO DIGITAL FINANCIERO (FDT) - MOTOR AVANZADO DE REPORTES PDF CUSTOMIZABLES
-# Módulo: report_generator.py
+# Módulo: advanced_pdf_report_generator.py
 # ==============================================================================
 
 import os
@@ -213,16 +213,12 @@ class FDTReportEngine:
 
         story = []
 
-        # ----------------------------------------------------------------------
-        # ENCABEZADO PRINCIPAL DEL INFORME
-        # ----------------------------------------------------------------------
+        # Encurbezado Principal
         story.append(Paragraph("🏛️ GEMELO DIGITAL FINANCIERO (FDT) - CASO DE ESTUDIO", title_style))
         story.append(Paragraph("Reporte de Evaluación Gerencial y Simulación de Mercado de Tarjetas de Crédito", subtitle_style))
         story.append(HRFlowable(width="100%", thickness=1.5, color=secondary_color, spaceAfter=12))
 
-        # ----------------------------------------------------------------------
-        # INFORMACIÓN DEL ESTUDIANTE Y CONTEXTO GERENCIAL
-        # ----------------------------------------------------------------------
+        # Información del Estudiante
         metrics = self.calculate_cross_analytics(target_entity)
 
         student_data = [
@@ -249,9 +245,7 @@ class FDTReportEngine:
         story.append(t_student)
         story.append(Spacer(1, 10))
 
-        # ----------------------------------------------------------------------
-        # MÓDULO 1: RESUMEN EJECUTIVO Y CRUCE CONSOLIDADO DE VARIABLES
-        # ----------------------------------------------------------------------
+        # Módulo 1: Resumen y Métricas
         story.append(Paragraph("1. Consolidado de Métricas Cruzadas del Gemelo Digital", section_style))
 
         kpi_data = [
@@ -298,35 +292,23 @@ class FDTReportEngine:
         story.append(t_kpi)
         story.append(Spacer(1, 10))
 
-        # ----------------------------------------------------------------------
-        # MÓDULOS OPCIONALES SELECCIONADOS POR EL USUARIO
-        # ----------------------------------------------------------------------
-
-        # A. Serie Temporal SFC
+        # Módulos Opcionales
         if "Serie Temporal SFC" in modules_selected and not self.df_sfc.empty:
             story.append(Paragraph("2. Módulo de Ingesta e Inercia Temporal (SFC)", section_style))
             story.append(Paragraph(
-                "Análisis de evolución histórica del volumen de plásticos y comportamiento temporal de las entidades seleccionadas. "
-                "Permite identificar la estabilidad de la cuota transaccional a través de ciclos económicos.", body_style
+                "Análisis de evolución histórica del volumen de plásticos y comportamiento temporal de las entidades seleccionadas.", body_style
             ))
             story.append(Spacer(1, 6))
 
-        # B. Constelación Financiera (Red Multilado)
         if "Constelación Financiera (Red Multilado)" in modules_selected and not self.df_const.empty:
             story.append(Paragraph("3. Módulo de Constelación Financiera y Plataforma Multilado", section_style))
             story.append(Paragraph(
-                "Evaluación del flujo de ingresos entre el Banco Emisor, Adquirente, Franquicia y Comercio. "
-                "Cálculo del equilibrio entre ingresos por rotación de intereses y comisiones fijas.", body_style
+                "Evaluación del flujo de ingresos entre el Banco Emisor, Adquirente, Franquicia y Comercio.", body_style
             ))
             story.append(Spacer(1, 6))
 
-        # C. Segmentación K-Means
         if "Segmentación Comportamental (K-Means)" in modules_selected and metrics.get("cruce_cluster_margen"):
             story.append(Paragraph("4. Cruce de Segmentación Comportamental vs. Margen Operativo", section_style))
-            story.append(Paragraph(
-                "Cross-tabulation entre los perfiles de consumidores identificados por el algoritmo K-Means y el margen operativo generado para la red.", body_style
-            ))
-
             cruce_rows = [
                 [
                     Paragraph("Perfil Comportamental", header_table_style),
@@ -351,20 +333,15 @@ class FDTReportEngine:
             story.append(t_cruce)
             story.append(Spacer(1, 10))
 
-        # D. Modelo Econométrico
         if "Modelo Econométrico de Diferenciación" in modules_selected and not self.df_econ.empty:
             story.append(Paragraph("5. Módulo Econométrico de Diferenciación e Inelasticidad", section_style))
             story.append(Paragraph(
-                "Simulación de la respuesta de demanda (Inelasticidad Cruzada) ante modificaciones en cuotas de manejo. "
-                "Demuestra cómo la diferenciación intangible protege a la entidad de guerras de precios.", body_style
+                "Simulación de la respuesta de demanda (Inelasticidad Cruzada) ante modificaciones en cuotas de manejo.", body_style
             ))
             story.append(Spacer(1, 6))
 
-        # ----------------------------------------------------------------------
-        # MÓDULO TRIÁNGULO DEL MARKETING DE SERVICIOS
-        # ----------------------------------------------------------------------
+        # Triángulo del Marketing
         story.append(Paragraph("6. Alineación en el Triángulo del Marketing de Servicios", section_style))
-
         triangle_data = [
             [
                 Paragraph("Dimensión del Triángulo", header_table_style),
@@ -372,22 +349,21 @@ class FDTReportEngine:
                 Paragraph("Soporte en el Gemelo Digital", header_table_style)
             ],
             [
-                Paragraph("<b>Marketing Externo</b><br/><i>(Prometer la Propuesta)</i>", cell_table_style),
-                Paragraph(strategic_decisions.get("mk_externo", "Alineación de promesa de valor según el perfil de cliente."), cell_table_style),
-                Paragraph("Respaldo con Segmentación K-Means y escala de plásticos.", cell_table_style)
+                Paragraph("<b>Marketing Externo</b><br/><i>(Prometer)</i>", cell_table_style),
+                Paragraph(strategic_decisions.get("mk_externo", "Alineación de promesa de valor."), cell_table_style),
+                Paragraph("Respaldo con Segmentación K-Means.", cell_table_style)
             ],
             [
-                Paragraph("<b>Marketing Interno</b><br/><i>(Formular y Capacitar)</i>", cell_table_style),
-                Paragraph(strategic_decisions.get("mk_interno", "Optimización del margen entre tasa rotativa, MDR y cuota."), cell_table_style),
-                Paragraph("Respaldo con la Constelación Multilado y Margen Operativo.", cell_table_style)
+                Paragraph("<b>Marketing Interno</b><br/><i>(Formular)</i>", cell_table_style),
+                Paragraph(strategic_decisions.get("mk_interno", "Optimización del margen neto."), cell_table_style),
+                Paragraph("Respaldo con la Constelación Multilado.", cell_table_style)
             ],
             [
-                Paragraph("<b>Marketing Interactivo</b><br/><i>(Cumplir en el Punto de Pago)</i>", cell_table_style),
-                Paragraph(strategic_decisions.get("mk_interactivo", "Garantizar disponibilidad tecnológica en la red adquirente."), cell_table_style),
-                Paragraph("Respaldo con la velocidad del switch y baja tasa de rechazo.", cell_table_style)
+                Paragraph("<b>Marketing Interactivo</b><br/><i>(Cumplir)</i>", cell_table_style),
+                Paragraph(strategic_decisions.get("mk_interactivo", "Garantizar disponibilidad."), cell_table_style),
+                Paragraph("Respaldo con disponibilidad tecnológica.", cell_table_style)
             ]
         ]
-
         t_tri = Table(triangle_data, colWidths=[140, 220, 180])
         t_tri.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), primary_color),
@@ -399,11 +375,8 @@ class FDTReportEngine:
         story.append(t_tri)
         story.append(Spacer(1, 10))
 
-        # ----------------------------------------------------------------------
-        # EVALUACIÓN SEGÚN RÚBRICA MULTIDIMENSIONAL
-        # ----------------------------------------------------------------------
+        # Rúbrica
         story.append(Paragraph("7. Autoevaluación alineada con la Rúbrica en 4 Dimensiones", section_style))
-
         rubric_data = [
             [
                 Paragraph("Dimensión de Evaluación", header_table_style),
@@ -411,27 +384,26 @@ class FDTReportEngine:
                 Paragraph("Declaración y Sustentación del Estudiante", header_table_style)
             ],
             [
-                Paragraph("<b>1. Rigor de Ingesta SFC</b>", cell_table_style),
+                Paragraph("<b>1. Rigor Ingesta SFC</b>", cell_table_style),
                 Paragraph("25%", cell_table_style),
-                Paragraph(strategic_decisions.get("rub_ingesta", "Analizado con base en la serie temporal histórica."), cell_table_style)
+                Paragraph(strategic_decisions.get("rub_ingesta", "Analizado serie temporal."), cell_table_style)
             ],
             [
-                Paragraph("<b>2. Análisis Red Multilado</b>", cell_table_style),
+                Paragraph("<b>2. Red Multilado</b>", cell_table_style),
                 Paragraph("25%", cell_table_style),
-                Paragraph(strategic_decisions.get("rub_multilado", "Ponderado según el margen operativo de los 6 enlaces."), cell_table_style)
+                Paragraph(strategic_decisions.get("rub_multilado", "Ponderado margen de red."), cell_table_style)
             ],
             [
                 Paragraph("<b>3. Perfilamiento K-Means</b>", cell_table_style),
                 Paragraph("25%", cell_table_style),
-                Paragraph(strategic_decisions.get("rub_kmeans", "Identificados los hábitos y ticket promedio por segmento."), cell_table_style)
+                Paragraph(strategic_decisions.get("rub_kmeans", "Hábitos por segmento."), cell_table_style)
             ],
             [
                 Paragraph("<b>4. Sustentación Econométrica</b>", cell_table_style),
                 Paragraph("25%", cell_table_style),
-                Paragraph(strategic_decisions.get("rub_econ", "Evaluada la inelasticidad cruzada ante shocks de tarifa."), cell_table_style)
+                Paragraph(strategic_decisions.get("rub_econ", "Evaluada inelasticidad cruzada."), cell_table_style)
             ]
         ]
-
         t_rub = Table(rubric_data, colWidths=[150, 40, 350])
         t_rub.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), secondary_color),
@@ -442,113 +414,6 @@ class FDTReportEngine:
         ]))
         story.append(t_rub)
 
-        # Construir el documento PDF
         doc.build(story)
         buffer.seek(0)
         return buffer
-
-
-# ==============================================================================
-# DEMOSTRACIÓN DE INTERFAZ STREAMLIT INTEGRADORA
-# ==============================================================================
-
-def render_streamlit_report_customizer():
-    """Renders the Streamlit interface for customizing the PDF report."""
-    st.subheader("🛠️ Personalizador Avanzado de Reportes PDF (Gemelo Digital)")
-    st.write(
-        "Ajuste los módulos analíticos, ingrese sus decisiones estratégicas del Triángulo de Marketing "
-        "y genere su informe de evaluación personalizado para Moodle."
-    )
-
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    engine = FDTReportEngine(
-        data_dir=os.path.join(BASE_DIR, "data"),
-        outputs_dir=os.path.join(BASE_DIR, "outputs")
-    )
-
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        st.markdown("### 1. Configuración del Estudiante y Entidad")
-        nombre_estudiante = st.text_input("Nombre Completo:", "Santiago García Carvajal")
-        curso_estudiante = st.text_input("Asignatura / Programa:", "Gerencia de Servicios Financieros")
-
-        entidades_disponibles = ["Perspectiva Consolidada"]
-        if not engine.df_const.empty and "nombreentidad" in engine.df_const.columns:
-            entidades_disponibles.extend(list(engine.df_const["nombreentidad"].unique()))
-
-        entidad_target = st.selectbox("Seleccione la Entidad de Análisis:", entidades_disponibles)
-        target_arg = None if entidad_target == "Perspectiva Consolidada" else entidad_target
-
-        st.markdown("### 2. Módulos Analíticos a Incluir en el PDF")
-        mod_sfc = st.checkbox("1. Serie Temporal e Ingesta SFC", value=True)
-        mod_const = st.checkbox("2. Constelación Financiera (Red Multilado)", value=True)
-        mod_kmeans = st.checkbox("3. Segmentación Comportamental (K-Means)", value=True)
-        mod_econ = st.checkbox("4. Modelo Econométrico de Diferenciación", value=True)
-
-        modulos_seleccionados = []
-        if mod_sfc: modulos_seleccionados.append("Serie Temporal SFC")
-        if mod_const: modulos_seleccionados.append("Constelación Financiera (Red Multilado)")
-        if mod_kmeans: modulos_seleccionados.append("Segmentación Comportamental (K-Means)")
-        if mod_econ: modulos_seleccionados.append("Modelo Econométrico de Diferenciación")
-
-    with col2:
-        st.markdown("### 3. Decisiones: Triángulo del Marketing de Servicios")
-        mk_ext = st.text_area("Marketing Externo (Prometer):", "Diferenciación por beneficios intangibles y marcas compartidas.")
-        mk_int = st.text_area("Marketing Interno (Formular):", "Optimización del margen neto entre MDR (comercio) y tasa rotativa.")
-        mk_act = st.text_area("Marketing Interactivo (Cumplir):", "Alta disponibilidad de la red adquirente y pagos sin contacto.")
-
-        st.markdown("### 4. Justificación para la Rúbrica de Evaluación")
-        rub_ing = st.text_input("Sustentación Ingesta SFC:", "Análisis del comportamiento del volumen de plásticos de 2021 a 2026.")
-        rub_mul = st.text_input("Sustentación Red Multilado:", "Cálculo del margen neto operativo para la entidad objetivo.")
-        rub_kme = st.text_input("Sustentación Perfiles K-Means:", "Estrategias dirigidas al clúster de mayor ticket promedio.")
-        rub_eco = st.text_input("Sustentación Econometría:", "Demostración de baja sensibilidad cruzada ante shocks de tarifa.")
-
-    # Vista previa de cifras consolidadas
-    st.markdown("---")
-    st.markdown("### 📊 Vista Previa de Cifras Consolidadas (Cruce de Variables)")
-    metrics_preview = engine.calculate_cross_analytics(target_arg)
-
-    mcol1, mcol2, mcol3, mcol4 = st.columns(4)
-    mcol1.metric("Volumen Mercado", f"${metrics_preview['volumen_total_mercado']:,.0f} COP")
-    mcol2.metric("Margen Neto Red", f"${metrics_preview['margen_neto_red']:,.0f} COP")
-    mcol3.metric("MDR Promedio", f"{metrics_preview['mdr_promedio']:.2f}%")
-    mcol4.metric("Shock Cuota", f"{metrics_preview['impacto_shock_cuota']:+.3f}%")
-
-    # Botón de generación y descarga
-    st.markdown("---")
-    if st.button("🚀 Generar PDF de Evaluación Personalizado", type="primary"):
-        student_info = {
-            "nombre": nombre_estudiante,
-            "curso": curso_estudiante
-        }
-        strategic_decisions = {
-            "mk_externo": mk_ext,
-            "mk_interno": mk_int,
-            "mk_interactivo": mk_act,
-            "rub_ingesta": rub_ing,
-            "rub_multilado": rub_mul,
-            "rub_kmeans": rub_kme,
-            "rub_econ": rub_eco
-        }
-
-        pdf_buffer = engine.generate_pdf(
-            filename="Reporte_Gemelo_Digital.pdf",
-            student_info=student_info,
-            modules_selected=modulos_seleccionados,
-            strategic_decisions=strategic_decisions,
-            target_entity=target_arg
-        )
-
-        st.success("¡Reporte PDF personalizado generado exitosamente!")
-        st.download_button(
-            label="📥 Descargar Reporte PDF para Moodle",
-            data=pdf_buffer,
-            file_name=f"Reporte_Gemelo_Digital_{nombre_estudiante.replace(' ', '_')}.pdf",
-            mime="application/pdf"
-        )
-
-
-if __name__ == "__main__":
-    st.set_page_config(page_title="Personalizador de PDF - Gemelo Digital", layout="wide")
-    render_streamlit_report_customizer()
