@@ -33,7 +33,7 @@ st.title("🏛️ Gemelo Digital Financiero: Mercado de Tarjetas de Crédito en 
 st.markdown("**Metodología:** Martínez Carazo (2006) | **Insumo:** Datos Abiertos SFC (Dataset `h2jg-r3zg`) | **Período:** 2021–2026")
 st.markdown("---")
 
-# Menú de navegación con key única para evitar DuplicateElementId
+# Menú de navegación único
 menu = st.sidebar.radio(
     "Seleccione la Capa de Análisis:",
     [
@@ -42,7 +42,7 @@ menu = st.sidebar.radio(
         "3. Segmentación Comportamental (K-Means)",
         "4. Modelo Econométrico de Diferenciación"
     ],
-    key="nav_menu_radio_main"
+    key="nav_menu_radio_single"
 )
 
 # ==============================================================================
@@ -70,7 +70,7 @@ if menu == "1. Serie Temporal e Ingesta SFC":
             "Seleccione Entidades a Comparar:", 
             options=entidades_disponibles, 
             default=entidades_default,
-            key="multi_entidades_capa1"
+            key="multi_entidades_capa1_clean"
         )
         
         if entidades_seleccionadas:
@@ -138,7 +138,7 @@ elif menu == "4. Modelo Econométrico de Diferenciación":
         st.warning(f"No se encontró `{csv_econ}`.")
 
 # ==============================================================================
-# BARRA LATERAL: INTEGRACIÓN DEL GENERADOR DE PDF
+# BARRA LATERAL: GENERADOR DE REPORTES PDF
 # ==============================================================================
 st.sidebar.markdown("---")
 st.sidebar.header("📄 Generador de Reporte PDF")
@@ -146,24 +146,24 @@ st.sidebar.header("📄 Generador de Reporte PDF")
 if PDF_DISPONIBLE:
     engine = FDTReportEngine(data_dir=DATA_DIR, outputs_dir=OUT_DIR)
 
-    nombre_estudiante = st.sidebar.text_input("Nombre del Estudiante:", "Santiago García Carvajal", key="input_nom_est")
-    curso_estudiante = st.sidebar.text_input("Asignatura:", "Gerencia de Servicios Financieros", key="input_cur_est")
+    nombre_estudiante = st.sidebar.text_input("Nombre del Estudiante:", "Santiago García Carvajal", key="nom_est_clean")
+    curso_estudiante = st.sidebar.text_input("Asignatura:", "Gerencia de Servicios Financieros", key="cur_est_clean")
 
     entidades_opts = ["Perspectiva Consolidada"]
     if not engine.df_const.empty and "nombreentidad" in engine.df_const.columns:
         entidades_opts.extend(list(engine.df_const["nombreentidad"].unique()))
     
-    entidad_target = st.sidebar.selectbox("Entidad Objeto de Estudio:", entidades_opts, key="select_entidad_pdf")
+    entidad_target = st.sidebar.selectbox("Entidad Objeto de Estudio:", entidades_opts, key="entidad_pdf_clean")
     target_arg = None if entidad_target == "Perspectiva Consolidada" else entidad_target
 
     modulos_seleccionados = st.sidebar.multiselect(
         "Módulos en el PDF:",
         ["Serie Temporal SFC", "Constelación Financiera (Red Multilado)", "Segmentación Comportamental (K-Means)", "Modelo Econométrico de Diferenciación"],
         default=["Serie Temporal SFC", "Constelación Financiera (Red Multilado)", "Modelo Econométrico de Diferenciación"],
-        key="multi_modulos_pdf"
+        key="modulos_pdf_clean"
     )
 
-    if st.sidebar.button("🎓 Generar PDF Personalizado", type="primary", key="btn_generar_pdf_side"):
+    if st.sidebar.button("🎓 Generar PDF Personalizado", type="primary", key="btn_pdf_clean"):
         student_info = {"nombre": nombre_estudiante, "curso": curso_estudiante}
         strategic_decisions = {
             "mk_externo": "Promesa diferenciada por intangibles.",
@@ -189,7 +189,7 @@ if PDF_DISPONIBLE:
             data=pdf_buffer,
             file_name=f"Reporte_FDT_{nombre_estudiante.replace(' ', '_')}.pdf",
             mime="application/pdf",
-            key="btn_descargar_pdf_side"
+            key="btn_descarga_pdf_clean"
         )
 else:
     st.sidebar.warning("Instale `reportlab` para habilitar las descargas.")
