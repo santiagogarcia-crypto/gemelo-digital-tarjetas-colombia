@@ -54,7 +54,7 @@ menu = st.sidebar.radio(
 # ==============================================================================
 if menu == "1. Serie Temporal e Ingesta SFC":
     st.header("📈 Evolución Temporal del Mercado de Tarjetas de Crédito")
-    st.write("Exploración dinámica del volumen de plásticos e indicadores históricos de la SFC.")
+    st.write("Exploración dinámica del volumen de plásticos e indicadores históricos de la SFC (Exclusivo Tarjetas de Crédito).")
     
     archivos_data = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')] if os.path.exists(DATA_DIR) else []
     
@@ -65,6 +65,17 @@ if menu == "1. Serie Temporal e Ingesta SFC":
             if df.empty:
                 st.error(f"El archivo `{archivos_data[0]}` está vacío.")
             else:
+                # ------------------------------------------------------------------
+                # FILTRADO EXCLUSIVO: EXCLUSIÓN DE TARJETA DÉBITO PARA HOMOLOGACIÓN
+                # ------------------------------------------------------------------
+                if 'nombre_uca' in df.columns:
+                    df = df[df['nombre_uca'] != 'TARJETA DEBITO']
+                if 'cod_uca' in df.columns:
+                    df = df[df['cod_uca'] != 6]
+                if 'subcuenta' in df.columns:
+                    df = df[~df['subcuenta'].astype(str).str.contains('DEBITO|Débito', case=False, na=False)]
+                # ------------------------------------------------------------------
+
                 col_fecha = 'fechacorte' if 'fechacorte' in df.columns else ('fecha' if 'fecha' in df.columns else df.columns[0])
                 col_entidad = 'nombreentidad' if 'nombreentidad' in df.columns else ('nombre_entidad' if 'nombre_entidad' in df.columns else df.columns[1])
                 col_tarjetas = 'total_tarjetas_credito' if 'total_tarjetas_credito' in df.columns else ('total_tarjetas' if 'total_tarjetas' in df.columns else df.columns[2])
@@ -82,7 +93,7 @@ if menu == "1. Serie Temporal e Ingesta SFC":
                 
                 if entidades_seleccionadas:
                     df_filtered = df[df[col_entidad].isin(entidades_seleccionadas)]
-                    fig = px.line(df_filtered, x=col_fecha, y=col_tarjetas, color=col_entidad, title="Volumen Histórico de Plásticos Activos")
+                    fig = px.line(df_filtered, x=col_fecha, y=col_tarjetas, color=col_entidad, title="Volumen Histórico de Plásticos Activos (Tarjetas de Crédito)")
                     st.plotly_chart(fig, width='stretch', key="fig_linea_capa1_v3")
                     with st.expander("🔍 Ver Tabla de Datos Filtrados (SFC)"):
                         st.dataframe(df_filtered.sort_values(by=col_fecha, ascending=False))
