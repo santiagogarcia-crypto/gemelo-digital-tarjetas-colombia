@@ -50,12 +50,21 @@ menu = st.sidebar.radio(
 )
 
 # ==============================================================================
-# CAPA 1: SERIE TEMPORAL E INGESTA SFC
+# CAPA 1: SERIE TEMPORAL E INGESTA SFC + POWER BI EMBEDDED
 # ==============================================================================
 if menu == "1. Serie Temporal e Ingesta SFC":
     st.header("📈 Evolución Temporal del Mercado de Tarjetas de Crédito")
     st.write("Exploración dinámica del volumen de plásticos e indicadores históricos de la SFC (Exclusivo Tarjetas de Crédito).")
     
+    # --------------------------------------------------------------------------
+    # SECCIÓN INTEGRADA: POWER BI SERVICE EMBEDDED
+    # --------------------------------------------------------------------------
+    with st.expander("📊 Ver Tablero Ejecutivo de Sensibilidad (Power BI Embedded)", expanded=False):
+        # Reemplaza la URL entre comillas con el enlace que copiaste de Power BI Service
+        POWER_BI_URL = "https://app.powerbi.com/view?r=TU_LINK_DE_POWER_BI_AQUI"
+        st.components.v1.iframe(POWER_BI_URL, height=600, scrolling=True)
+    # --------------------------------------------------------------------------
+
     archivos_data = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')] if os.path.exists(DATA_DIR) else []
     
     if archivos_data:
@@ -65,16 +74,16 @@ if menu == "1. Serie Temporal e Ingesta SFC":
             if df.empty:
                 st.error(f"El archivo `{archivos_data[0]}` está vacío.")
             else:
-                # ------------------------------------------------------------------
+                # --------------------------------------------------------------
                 # FILTRADO EXCLUSIVO: EXCLUSIÓN DE TARJETA DÉBITO PARA HOMOLOGACIÓN
-                # ------------------------------------------------------------------
+                # --------------------------------------------------------------
                 if 'nombre_uca' in df.columns:
                     df = df[df['nombre_uca'] != 'TARJETA DEBITO']
                 if 'cod_uca' in df.columns:
                     df = df[df['cod_uca'] != 6]
                 if 'subcuenta' in df.columns:
                     df = df[~df['subcuenta'].astype(str).str.contains('DEBITO|Débito', case=False, na=False)]
-                # ------------------------------------------------------------------
+                # --------------------------------------------------------------
 
                 col_fecha = 'fechacorte' if 'fechacorte' in df.columns else ('fecha' if 'fecha' in df.columns else df.columns[0])
                 col_entidad = 'nombreentidad' if 'nombreentidad' in df.columns else ('nombre_entidad' if 'nombre_entidad' in df.columns else df.columns[1])
