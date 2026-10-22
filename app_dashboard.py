@@ -21,7 +21,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 OUT_DIR = os.path.join(BASE_DIR, "outputs")
 
-# Importación segura del motor de reportes con diagnóstico del error real
+# Importación segura del motor de reportes con diagnóstico de error
 PDF_ERROR = None
 try:
     from advanced_pdf_report_generator import FDTReportEngine
@@ -36,7 +36,7 @@ st.markdown("**Metodología:** Martínez Carazo (2006) | **Insumo:** Datos Abier
 st.markdown("---")
 
 # ==============================================================================
-# BARRA LATERAL (SIDEBAR): NAVEGACIÓN ÚNICA
+# BARRA LATERAL (SIDEBAR): NAVEGACIÓN Y PARÁMETROS DE SIMULACIÓN
 # ==============================================================================
 menu = st.sidebar.radio(
     "Seleccione la Capa de Análisis:",
@@ -49,6 +49,21 @@ menu = st.sidebar.radio(
     key="nav_menu_radio_v3"
 )
 
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚙️ Parámetros de Simulación (ML & PDF)")
+
+# Slider de Shock de Precio sincronizado con Python y el Generador de PDF
+shock_precio_pct = st.sidebar.slider(
+    "Porcentaje Shock de Precio (%):",
+    min_value=-15.0,
+    max_value=15.0,
+    value=0.0,
+    step=1.0,
+    format="%.1f%%",
+    key="shock_slider_global"
+) / 100.0  # Convierte porcentaje a decimal (ej: 5.0% -> 0.05)
+
+
 # ==============================================================================
 # CAPA 1: SERIE TEMPORAL E INGESTA SFC + POWER BI EMBEDDED
 # ==============================================================================
@@ -57,12 +72,20 @@ if menu == "1. Serie Temporal e Ingesta SFC":
     st.write("Exploración dinámica del volumen de plásticos e indicadores históricos de la SFC (Exclusivo Tarjetas de Crédito).")
     
     # --------------------------------------------------------------------------
-    # SECCIÓN INTEGRADA: POWER BI SERVICE EMBEDDED
+    # CONEXIÓN INTEGRADA CON TU DASHBOARD DE POWER BI
     # --------------------------------------------------------------------------
     with st.expander("📊 Ver Tablero Ejecutivo de Sensibilidad (Power BI Embedded)", expanded=False):
-        # Reemplaza la URL entre comillas con el enlace que copiaste de Power BI Service
-        POWER_BI_URL = "https://app.powerbi.com/view?r=TU_LINK_DE_POWER_BI_AQUI"
-        st.components.v1.iframe(POWER_BI_URL, height=600, scrolling=True)
+        # URL de acceso a tu informe de Power BI
+        POWER_BI_DIRECT_URL = "https://app.powerbi.com/groups/me/reports/d81204f7-8faa-443f-987d-6f637e8e9c99/7a892de421e47bbb6094?experience=power-bi"
+        
+        # URL formateada para iframe incrustado (Power BI Service View)
+        POWER_BI_IFRAME_URL = "https://app.powerbi.com/reportEmbed?reportId=d81204f7-8faa-443f-987d-6f637e8e9c99&autoAuth=true"
+        
+        st.info("💡 Puedes interactuar con el panel directamente o abrirlo en pantalla completa con tu cuenta de Power BI.")
+        st.link_button("🔗 Abrir Dashboard Directamente en Power BI", POWER_BI_DIRECT_URL, type="secondary")
+        
+        # Renderizado dentro del marco de Streamlit
+        st.components.v1.iframe(POWER_BI_IFRAME_URL, height=600, scrolling=True)
     # --------------------------------------------------------------------------
 
     archivos_data = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')] if os.path.exists(DATA_DIR) else []
@@ -75,7 +98,7 @@ if menu == "1. Serie Temporal e Ingesta SFC":
                 st.error(f"El archivo `{archivos_data[0]}` está vacío.")
             else:
                 # --------------------------------------------------------------
-                # FILTRADO EXCLUSIVO: EXCLUSIÓN DE TARJETA DÉBITO PARA HOMOLOGACIÓN
+                # FILTRADO EXCLUSIVO: EXCLUSIÓN PERMANENTE DE TARJETA DÉBITO
                 # --------------------------------------------------------------
                 if 'nombre_uca' in df.columns:
                     df = df[df['nombre_uca'] != 'TARJETA DEBITO']
@@ -90,6 +113,10 @@ if menu == "1. Serie Temporal e Ingesta SFC":
                 col_tarjetas = 'total_tarjetas_credito' if 'total_tarjetas_credito' in df.columns else ('total_tarjetas' if 'total_tarjetas' in df.columns else df.columns[2])
                 
                 df[col_fecha] = pd.to_datetime(df[col_fecha])
+                
+                # APLICACIÓN DEL SHOCK DE PRECIO EN TIEMPO REAL SOBRE PYTHON
+                df[col_tarjetas] = df[col_tarjetas] * (1 + shock_precio_pct)
+
                 entidades_disponibles = list(df[col_entidad].dropna().unique())
                 entidades_default = entidades_disponibles[:5] if len(entidades_disponibles) >= 5 else entidades_disponibles
                 
@@ -102,9 +129,12 @@ if menu == "1. Serie Temporal e Ingesta SFC":
                 
                 if entidades_seleccionadas:
                     df_filtered = df[df[col_entidad].isin(entidades_seleccionadas)]
-                    fig = px.line(df_filtered, x=col_fecha, y=col_tarjetas, color=col_entidad, title="Volumen Histórico de Plásticos Activos (Tarjetas de Crédito)")
+                    
+                    titulo_grafico = f"Volumen Histórico con Shock Simulado ({shock_precio_pct*100:+.1f}%)"
+                    fig = px.line(df_filtered, x=col_fecha, y=col_tarjetas, color=col_entidad, title=titulo_grafico)
                     st.plotly_chart(fig, width='stretch', key="fig_linea_capa1_v3")
-                    with st.expander("🔍 Ver Tabla de Datos Filtrados (SFC)"):
+                    
+                    with st.expander("🔍 Ver Tabla de Datos Filtrados y Simulados (SFC)"):
                         st.dataframe(df_filtered.sort_values(by=col_fecha, ascending=False))
         except Exception as e:
             st.error(f"Error al leer la fuente de datos CSV: {e}")
@@ -120,8 +150,12 @@ elif menu == "2. Constelación Financiera (Red Multilado)":
     if os.path.exists(csv_const):
         try:
             df_c = pd.read_csv(csv_const)
+            
+            # Recálculo simulado por efecto del shock
+            vol_simulado = df_c['volumen_transado_mensual'].sum() * (1 + shock_precio_pct)
+            
             col1, col2, col3 = st.columns(3)
-            col1.metric("Volumen Transado Total", f"${df_c['volumen_transado_mensual'].sum():,.0f} COP")
+            col1.metric("Volumen Transado Simulado", f"${vol_simulado:,.0f} COP", delta=f"{shock_precio_pct*100:+.1f}%")
             col2.metric("Comisión Comercio (MDR)", f"${df_c['ingreso_mdr_comercio'].sum():,.0f} COP")
             col3.metric("Margen Operativo Neto", f"${df_c['margen_neto_operativo'].sum():,.0f} COP")
             
@@ -167,7 +201,7 @@ elif menu == "4. Modelo Econométrico de Diferenciación":
             df_e = pd.read_csv(csv_econ)
             fig_diff = px.bar(
                 df_e.sort_values(by='Variacion_Absoluta_Cuota', ascending=False).head(12),
-                x='Entidad', y='Variacion_Absoluta_Cuota', color='Tipo', title="Sensibilidad ante Shock de Precio (+1.5%)"
+                x='Entidad', y='Variacion_Absoluta_Cuota', color='Tipo', title=f"Sensibilidad ante Shock de Precio ({shock_precio_pct*100:+.1f}%)"
             )
             st.plotly_chart(fig_diff, width='stretch', key="fig_barras_capa4_v3")
         except Exception as e:
@@ -176,7 +210,7 @@ elif menu == "4. Modelo Econométrico de Diferenciación":
         st.warning(f"No se encontró `{csv_econ}`.")
 
 # ==============================================================================
-# BARRA LATERAL: SECCIÓN ÚNICA PARA EL GENERADOR DE PDF
+# BARRA LATERAL: SECCIÓN DEL GENERADOR DE REPORTES PDF
 # ==============================================================================
 st.sidebar.markdown("---")
 st.sidebar.header("📄 Generador de Reporte PDF")
@@ -203,11 +237,13 @@ if PDF_DISPONIBLE:
 
     if st.sidebar.button("🎓 Generar PDF Personalizado", type="primary", key="pdf_btn_gen_v3"):
         student_info = {"nombre": nombre_estudiante, "curso": curso_estudiante}
+        
+        # DICCIONARIO ACTUALIZADO CON EL SHOCK SIMULADO Y ENVIADO AL PDF
         strategic_decisions = {
-            "mk_externo": "Promesa diferenciada por intangibles.",
+            "mk_externo": f"Ajuste por shock simulado de {shock_precio_pct*100:+.1f}%.",
             "mk_interno": "Optimización del margen neto operativo.",
             "mk_interactivo": "Alta disponibilidad en punto de pago.",
-            "rub_ingesta": "Análisis de series de tiempo SFC.",
+            "rub_ingesta": f"Análisis de series de tiempo SFC (Shock: {shock_precio_pct*100:+.1f}%).",
             "rub_multilado": "Estructuración de red de 6 enlaces.",
             "rub_kmeans": "Perfiles transaccionales identificados.",
             "rub_econ": "Modelo de inelasticidad cruzada."
